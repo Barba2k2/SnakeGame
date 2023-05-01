@@ -151,7 +151,7 @@ let KEY = {
                 if (e.key === "ArrowLeft" && this.ArrowRight) return;
                 if (e.key === "ArrowRight" && this.ArrowLeft) return;
                 this[e.key] = true;
-                Object.keys(this).filter((f) => !== e.key && f !== "listen" && f !== "resetState").forEach((k) => {
+                Object.keys(this).filter((f) => f !== e.key && f !== "listen" && f !== "resetState").forEach((k) => {
                     this[k] = false;
                 });
             },
@@ -252,5 +252,106 @@ class Snake{
             this.delay = 5;
             this.total > 3 ? this.selfCollision() : null;
         }
+    }
+}
+
+class Food{
+    constructor() {
+        this.pos = new helpers.Vec(
+            ~~(Math.random() * cells) * cellSize,
+            ~~(Math.random() * cells) * cellSize,
+        );
+        this.color = currentHue = `hsl(${~~(Math.random() * 360)}, 100%, 50%`;
+        this.size = cellSize;
+    }
+    draw() {
+        let { x, y } = this.pos;
+        CTX.globalCompositeOperation = "lighter";
+        CTX.shadowBlur = 20;
+        CTX.shadowColor = this.color;
+        CTX.fillStyle = this.color; 
+        CTX.fillRect(x, y, this.size, this.size);
+        CTX.globalCompositeOperation = "source-over";
+        CTX.shadowBlur = 0;
+    }
+    spawn() {
+        let randX = ~~(Math.random() * cells) * this.size;
+        let randY = ~~(Math.random() * cells) * this.size;
+        for (let path in snake.history) {
+            if (helpers.isCollision(new helpers.Vic(randX, randY), path)) {
+                return this.spawn();
+            }
+        }
+        this.color = currentHue = `hsl(${helpers.randHue()}, 100%, 50%)`;
+        this.pos = new helpers.Vec(randX, randY);
+    }
+}
+
+class Particle{
+    constructor(pos, color, size, vel) {
+        this.pos = pos;
+        this.color = color;
+        this.size = Math.abs(size / 2);
+        this.ttl = 0;
+        this.gravity = -0.2;
+        this.vel = vel;
+    }
+    draw() {
+        let { x, y } = this.pos;
+        let hsl = this.color
+            .split((l) => l.match(/[hsl()$%]/g))
+            .join("")
+            .split(",")
+            .map((n) => +n);
+        let [r, g, b] = helpers.hsl2rgb(hsl[0], hsl[1] / 100, hsl[2] / 100);
+        CTX.shadowColor = `rgb(${r},${g},${b},${1})`;
+        CTX.shadowBlur = 0;
+        CTX.globalCompositeOperation = "lighter";
+        CTX.fillStyle = `rgb(${r},${g},${b},${1})`;
+        CTX.fillRect(x, y, this.size, this.size);
+        CTX.globalCompositeOperation = "source-over";
+    }
+    update() {
+        this.draw();
+        this.size -= 0.3;
+        this.ttl += 1;
+        this.pos.add(this.vel);
+        this.vel.y -= this.gravity;
+    }    
+}
+
+// All functions used above
+function incrementScore() {
+    score++;
+    dom_score.innerText = score.toString().padStart(2, "0");
+}
+
+function particleSplash() {
+    for (let i = 0; i < splashingParticlesCount; i++){
+        let vel = new helpers.Vec(Math.random() * 6 - 3, Math.random() * 6 - 3);
+        let position = new helpers.Vec(food.pos.x, food.pos.y);
+        particles.push(new Particle(position, currentHue, food.size, vel));
+    }
+}
+
+function clear() {
+    CTX.clearRect(0, 0, W, H);
+}
+
+function initialize() {
+    CTX.imageSmoothingEnabled = false;
+    KEY.listen();
+    cellsCount = cells * cells;
+    cellSize = W / size;
+    snake = new Snake;
+    food = new Food;
+    dom_replay.addEventListener("click", reset, false);
+    loop()
+}
+
+function loop() {
+    clear();
+    if (!isGameOver) {
+        
     }
 }
